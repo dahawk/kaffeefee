@@ -4,7 +4,7 @@ Kaffeefee (roughly translates to coffee fairy - german pun intended) is a nice l
 ## Install ##
 In order to run Kaffeefee you need:
 
-* Build the project or download the binary, fitting your requirements.
+* Build the project
 * A Postgres database
 * The content of create.sql imported into the Postgres database
 * One of the following:
