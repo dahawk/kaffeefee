@@ -2,6 +2,7 @@ CREATE TABLE users
 (
     id bigserial NOT NULL,
     name text,
+    active boolean DEFAULT true,
     CONSTRAINT id_pkey PRIMARY KEY (id)
 );
 

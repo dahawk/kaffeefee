@@ -586,7 +586,7 @@ func populateUser() []user {
 	var users []user
 	from, _ := getPeriod(time.Now())
 
-	err := db.Select(&users, "select * from users")
+	err := db.Select(&users, "select * from users where active=true")
 	if err != nil {
 		panic(err)
 	}
