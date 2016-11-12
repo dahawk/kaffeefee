@@ -28,6 +28,7 @@ type user struct {
 }
 
 type userlogs []log
+type userList []user
 
 type dayData struct {
 	Hour string
@@ -297,7 +298,8 @@ func calculateAverages(users []user) map[string]map[string]float64 {
 			fromMonthly = fromTmp.Unix()
 		}
 	}
-	avgsDay := emptyMap()
+	populate := populateUser()
+	avgsDay := populate.emptyMap()
 	for k, v := range countsDaily {
 		avgsDay[k] = (float64(v) / float64(cntDaily[k]))
 		if math.IsNaN(avgsDay[k]) {
@@ -306,7 +308,7 @@ func calculateAverages(users []user) map[string]map[string]float64 {
 	}
 	ret["DailyAvgs"] = avgsDay
 
-	avgsWeek := emptyMap()
+	avgsWeek := populate.emptyMap()
 	for k, v := range countsWeekly {
 
 		avgsWeek[k] = (float64(v) / float64(cntWeekly[k]))
@@ -316,7 +318,7 @@ func calculateAverages(users []user) map[string]map[string]float64 {
 	}
 	ret["WeeklyAvgs"] = avgsWeek
 
-	avgsMonth := emptyMap()
+	avgsMonth := populate.emptyMap()
 	for k, v := range countsMonthly {
 
 		avgsMonth[k] = (float64(v) / float64(cntMonthly[k]))
@@ -329,9 +331,8 @@ func calculateAverages(users []user) map[string]map[string]float64 {
 	return ret
 }
 
-func emptyMap() map[string]float64 {
+func (users userList) emptyMap() map[string]float64 {
 	ret := make(map[string]float64, 0)
-	users := populateUser()
 	for _, v := range users {
 		ret[v.Name] = 0.0
 	}
@@ -413,13 +414,6 @@ func jsonDaily(w http.ResponseWriter, r *http.Request) {
 			days++
 		}
 	}
-
-	/*for i := 0; i < 24; i++ {
-		if days > 0 {
-			data[i].Cnt = data[i].Cnt / days
-		}
-	}*/
-
 	encoder.Encode(data)
 }
 
@@ -464,12 +458,6 @@ func jsonWeekly(w http.ResponseWriter, r *http.Request) {
 			weeks++
 		}
 	}
-	/*for i := 0; i < 7; i++ {
-		if weeks > 0 {
-			data[i].Cnt = data[i].Cnt / weeks
-		}
-	}*/
-
 	encoder.Encode(data)
 }
 
@@ -582,26 +570,27 @@ func getPeriod(now time.Time) (time.Time, time.Time) {
 	return from, to
 }
 
-func populateUser() []user {
-	var users []user
+//TODO possibly split into get user and get count
+func populateUser() userList {
+	var u userList
 	from, _ := getPeriod(time.Now())
 
-	err := db.Select(&users, "select * from users where active=true")
+	err := db.Select(&u, "select * from users where active=true")
 	if err != nil {
 		panic(err)
 	}
 
-	for i, u := range users {
+	for i, user := range u {
 		var cnt []int
-		err = db.Select(&cnt, "select sum(cnt) from log where ts > $1 and userid = $2", from.Unix(), u.UserID)
+		err = db.Select(&cnt, "select sum(cnt) from log where ts > $1 and userid = $2", from.Unix(), user.UserID)
 		if err == nil {
-			users[i].Today = cnt[0]
+			u[i].Today = cnt[0]
 		} else {
 			fmt.Println(err)
 		}
 	}
 
-	return users
+	return u
 }
 
 func getUsersToday(id string) int {
