@@ -123,14 +123,17 @@ func jsonAjax(w http.ResponseWriter, r *http.Request) {
 	user := r.URL.Query().Get("user")
 
 	var ret []map[string]string
+	users := populateUser()
+	l := getLogsForUser(users.getUserIDFromName(user))
+	now := time.Now()
 
 	switch selector {
 	case "daily":
-		ret = mapping(getDailyCount(user, minTimestamp))
+		ret = mapping(l.getDailyCount(now, minTimestamp))
 	case "weekly":
-		ret = mapping(getWeeklyCount(user, minTimestamp))
+		ret = mapping(l.getWeeklyCount(now, minTimestamp))
 	case "monthly":
-		ret = mapping(getMonthlyCount(user, minTimestamp))
+		ret = mapping(l.getMonthlyCount(now, minTimestamp))
 	}
 
 	encoder.Encode(ret)

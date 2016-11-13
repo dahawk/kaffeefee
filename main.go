@@ -75,7 +75,6 @@ func main() {
 
 }
 
-//TODO should be testable
 func renderPage(store bool, users []user) (map[string]interface{}, error) {
 	p := make(map[string]interface{}, 0)
 	var data []user
@@ -89,6 +88,8 @@ func renderPage(store bool, users []user) (map[string]interface{}, error) {
 	return p, nil
 }
 
+//TODO break it up.
+//Return type map[string]map[string]float64 indicates something fishy
 func calculateAverages(users []user) map[string]map[string]float64 {
 	minTimestamp := getMinTimestamp()
 	ret := make(map[string]map[string]float64, 0)
@@ -195,17 +196,15 @@ func (users userList) emptyMap() map[string]float64 {
 	return ret
 }
 
-func getDailyCount(userID string, minTimestamp int64) map[time.Time]int64 {
+func (logs userlogs) getDailyCount(now time.Time, minTimestamp int64) map[time.Time]int64 {
 	ret := make(map[time.Time]int64, 0)
-	l := getLogsForUser(getUserIDFromName(userID))
 
-	now := time.Now()
 	var subDay int64 = 60 * 60 * 24
 
 	from := now.Truncate(truncDay).Unix()
 	to := from + subDay
 	for from >= minTimestamp {
-		ret[time.Unix(from, 0)] = l.calculateSumForUser(from, to)
+		ret[time.Unix(from, 0)] = logs.calculateSumForUser(from, to)
 
 		to = from
 		from = from - subDay
@@ -214,18 +213,16 @@ func getDailyCount(userID string, minTimestamp int64) map[time.Time]int64 {
 	return ret
 }
 
-func getWeeklyCount(userID string, minTimestamp int64) map[time.Time]int64 {
+func (logs userlogs) getWeeklyCount(now time.Time, minTimestamp int64) map[time.Time]int64 {
 	ret := make(map[time.Time]int64, 0)
-	l := getLogsForUser(getUserIDFromName(userID))
 
-	now := time.Now()
 	var subWeek int64 = 60 * 60 * 24 * 7
 
 	from := now.Truncate(truncWeek).Unix()
 	to := from + subWeek
 	for to >= minTimestamp {
 		//fix
-		ret[time.Unix(from, 0)] = l.calculateSumForUser(from, to)
+		ret[time.Unix(from, 0)] = logs.calculateSumForUser(from, to)
 
 		to = from
 		from = from - subWeek
@@ -234,11 +231,8 @@ func getWeeklyCount(userID string, minTimestamp int64) map[time.Time]int64 {
 	return ret
 }
 
-func getMonthlyCount(userID string, minTimestamp int64) map[time.Time]int64 {
+func (logs userlogs) getMonthlyCount(now time.Time, minTimestamp int64) map[time.Time]int64 {
 	ret := make(map[time.Time]int64, 0)
-	l := getLogsForUser(getUserIDFromName(userID))
-
-	now := time.Now()
 
 	fromTmp := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	from := fromTmp.Unix()
@@ -246,7 +240,7 @@ func getMonthlyCount(userID string, minTimestamp int64) map[time.Time]int64 {
 	to := toTmp.Unix()
 	for to >= minTimestamp {
 		//fix
-		ret[time.Unix(from, 0)] = l.calculateSumForUser(from, to)
+		ret[time.Unix(from, 0)] = logs.calculateSumForUser(from, to)
 
 		toTmp = fromTmp.AddDate(0, 0, -1)
 		fromTmp = toTmp.AddDate(0, -1, 1)
@@ -258,8 +252,7 @@ func getMonthlyCount(userID string, minTimestamp int64) map[time.Time]int64 {
 }
 
 //TODO pull out populateUser
-func getUserIDFromName(name string) int {
-	users := populateUser()
+func (users userList) getUserIDFromName(name string) int {
 	for _, v := range users {
 		if v.Name == name {
 			return v.UserID
