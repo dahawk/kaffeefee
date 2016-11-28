@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -224,4 +225,118 @@ func jsonWeekly(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	encoder.Encode(data)
+}
+
+func admin(w http.ResponseWriter, r *http.Request) {
+	t, err := template.ParseFiles("tpl/admin.tpl")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	paramValues := r.URL.Query()
+	name := paramValues.Get("user")
+	u := user{}
+	if name != "" {
+		u, err = getUserByName(name)
+	}
+
+	if err == nil && paramValues.Get("enable") == "1" {
+		err = toggleUserActive(u)
+	}
+	if err == nil && paramValues.Get("delete") == "1" {
+		err = deleteUser(u)
+	}
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	users, err := getAllUsers()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	err = t.Execute(w, users)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func editUser(w http.ResponseWriter, r *http.Request) {
+	t, err := template.ParseFiles("tpl/adminUser.tpl")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	var name string
+	if r.Method == "GET" {
+		name = r.URL.Query().Get("user")
+	} else {
+		err = r.ParseForm()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		var id int
+		name = r.Form.Get("user")
+		mail := r.Form.Get("email")
+		id, err = strconv.Atoi(r.Form.Get("id"))
+		if err != nil {
+			fmt.Println("error updating user", err)
+			return
+		}
+		u := user{
+			Name:   name,
+			Mail:   mail,
+			UserID: id,
+		}
+		//handle storing data
+		err = updateUser(u)
+		if err != nil {
+			fmt.Println("error updating user", err)
+		}
+	}
+
+	u, err := getUserByName(name)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	t.Execute(w, u)
+}
+
+func addUser(w http.ResponseWriter, r *http.Request) {
+	t, err := template.ParseFiles("tpl/adminUser.tpl")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if r.Method == "POST" {
+		err = r.ParseForm()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		u := user{
+			Name:   r.Form.Get("user"),
+			Mail:   r.Form.Get("email"),
+			Active: true,
+		}
+		err = insertUser(u)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+
+	err = t.Execute(w, user{})
+	if err != nil {
+		fmt.Println(err)
+	}
 }

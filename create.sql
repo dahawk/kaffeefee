@@ -3,6 +3,7 @@ CREATE TABLE users
     id bigserial NOT NULL,
     name text,
     active boolean DEFAULT true,
+    mail text,
     CONSTRAINT id_pkey PRIMARY KEY (id)
 );
 

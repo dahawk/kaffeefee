@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -185,5 +186,17 @@ func TestGetUserIDFromName(t *testing.T) {
 	id = users.getUserIDFromName("user2")
 	if id != -1 {
 		t.Error("expected user id -1, got ", id)
+	}
+}
+
+func TestHasLocalImage(t *testing.T) {
+	ret, path := hasLocalImage("Default")
+	fmt.Println(path)
+	if !ret {
+		t.Error("expected placeholder not found")
+	}
+
+	if strings.HasPrefix(path, "Default.png") {
+		t.Error("encountered unexpected image path")
 	}
 }

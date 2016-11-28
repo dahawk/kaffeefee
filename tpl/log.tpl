@@ -34,7 +34,7 @@
 				width: 350px;
 				height: 75px;
 				margin: 15px;
-				padding: 15px;
+				padding: 5px;
 			}
 
 			.list {
@@ -70,7 +70,7 @@
 			</div>
 			{{end}}
 			<div class="flex-container container">
-				{{range .Users}}<div class="flex-item row" data-id="{{.UserID}}"><div class="col-md-3"><img src="/static/{{.Name}}.png" class="userimg"/></div><div style="float: right;" class="col-md-9">{{.Name}}<br/><span id="id-{{.UserID}}" class="tally list">{{.Today}}</span></div></div>{{end}}
+				{{range .Users}}<div class="flex-item row" data-id="{{.UserID}}"><div class="col-md-3"><img src="{{.Image}}" class="userimg"/></div><div style="float: right;" class="col-md-9">{{.Name}}<br/><span id="id-{{.UserID}}" class="tally list">{{.Today}}</span></div></div>{{end}}
 			</div>
 		</div>
 	</body>

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"net/http"
@@ -22,6 +24,9 @@ type user struct {
 	Name   string `db:"name"`
 	UserID int    `db:"id"`
 	Today  int
+	Active bool   `db:"active"`
+	Mail   string `db:"mail"`
+	Image  string
 }
 
 type userlogs []log
@@ -70,6 +75,9 @@ func main() {
 	mux.HandleFunc("/jsonDaily", jsonDaily)
 	mux.HandleFunc("/weeklyChart", weekGraph)
 	mux.HandleFunc("/jsonWeekly", jsonWeekly)
+	mux.HandleFunc("/admin", admin)
+	mux.HandleFunc("/editUser", editUser)
+	mux.HandleFunc("/createUser", addUser)
 
 	http.ListenAndServe(":8080", mux)
 
@@ -117,8 +125,6 @@ func calculateAverages(users []user) map[string]map[string]float64 {
 	for _, u := range users {
 		toDaily := now.Truncate(truncDay).Unix()
 		fromDaily := toDaily - int64(subDay)
-		toWeekly := now.Truncate(truncWeek).Unix()
-		fromWeekly := toWeekly - int64(subWeek)
 
 		l := getLogsForUser(u.UserID)
 		for fromDaily >= minTimestamp {
@@ -128,8 +134,8 @@ func calculateAverages(users []user) map[string]map[string]float64 {
 			fromDaily = fromDaily - int64(subDay)
 		}
 
-		toWeekly = now.Truncate(truncWeek).Unix()
-		fromWeekly = toWeekly - int64(subWeek)
+		toWeekly := now.Truncate(truncWeek).Unix()
+		fromWeekly := toWeekly - int64(subWeek)
 
 		for fromWeekly >= minTimestamp {
 			cntWeekly[u.Name]++
@@ -298,15 +304,13 @@ func getPeriod(now time.Time) (time.Time, time.Time) {
 	return from, to
 }
 
-//TODO possibly split into get user and get count
 func populateUser() userList {
-	var u userList
-	from, _ := getPeriod(time.Now())
-
-	err := db.Select(&u, "select * from users where active=true")
+	u, err := getActiveUsers()
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return userList{}
 	}
+	from, _ := getPeriod(time.Now())
 
 	for i, user := range u {
 		var cnt []int
@@ -316,7 +320,58 @@ func populateUser() userList {
 		} else {
 			fmt.Println(err)
 		}
+
+		localImg, path := hasLocalImage(user.Name)
+		if localImg {
+			u[i].Image = path
+			continue
+		}
+
+		gravatarImg, url := hasGravatarImage(user.Mail)
+		if gravatarImg {
+			u[i].Image = url
+			continue
+		}
+		u[i].Image = "/static/Default.png"
 	}
 
 	return u
+}
+
+func hasLocalImage(name string) (bool, string) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return false, ""
+	}
+	path := fmt.Sprintf("%s/static/%s.png", wd, name)
+	fh, err := os.Open(path)
+	if err != nil {
+		fmt.Println(err)
+		return false, ""
+	}
+	fh.Close()
+
+	ret := fmt.Sprintf("/static/%s.png", name)
+
+	return true, ret
+}
+
+func hasGravatarImage(mail string) (bool, string) {
+	if mail == "" {
+		return false, ""
+	}
+	hash := md5.Sum([]byte(mail))
+	url := fmt.Sprintf("https://www.gravatar.com/avatar/%s?d=404&s=60", hex.EncodeToString(hash[:]))
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return false, ""
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return false, ""
+	}
+
+	return true, url
 }

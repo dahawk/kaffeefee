@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -51,6 +52,17 @@ func getAllLogs() userlogs {
 	return ret
 }
 
+func getAllUsers() (userList, error) {
+	var ret userList
+
+	err := db.Select(&ret, "select * from users")
+	if err != nil {
+		return nil, err
+	}
+
+	return ret, err
+}
+
 func storeLog(id string) error {
 	user, err := strconv.Atoi(id)
 	if err != nil {
@@ -82,4 +94,50 @@ func storeLog(id string) error {
 
 	tx.Commit()
 	return nil
+}
+
+func getUserByName(name string) (user, error) {
+	ret := []user{}
+	err := db.Select(&ret, "select * from users where name=$1", name)
+	if err != nil {
+		return user{}, err
+	}
+	if len(ret) != 1 {
+		return user{}, errors.New("unexpected number of results returned")
+	}
+
+	return ret[0], nil
+}
+
+func toggleUserActive(u user) error {
+	isActive := !u.Active
+	_, err := db.Exec("update users set active=$1 where id=$2", isActive, u.UserID)
+	return err
+}
+
+func deleteUser(u user) error {
+	_, err := db.Exec("delete from users where id=$1", u.UserID)
+	return err
+}
+
+func updateUser(u user) error {
+	_, err := db.Exec("update users set name=$1, mail=$2 where id=$3", u.Name, u.Mail, u.UserID)
+	return err
+}
+
+func insertUser(u user) error {
+	_, err := db.Exec("insert into users (name, mail, active) values ($1,$2,$3)",
+		u.Name, u.Mail, u.Active)
+
+	return err
+}
+
+func getActiveUsers() (userList, error) {
+	u := userList{}
+	err := db.Select(&u, "select * from users where active=true")
+	if err != nil {
+		return userList{}, err
+	}
+
+	return u, nil
 }
