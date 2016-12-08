@@ -1,3 +1,5 @@
+CREATE ROLE kaffeefee WITH LOGIN;
+
 CREATE TABLE users
 (
     id bigserial NOT NULL,
@@ -6,6 +8,7 @@ CREATE TABLE users
     mail text,
     CONSTRAINT id_pkey PRIMARY KEY (id)
 );
+ALTER TABLE users OWNER TO kaffeefee;
 
 CREATE TABLE log
 (
@@ -18,3 +21,4 @@ CREATE TABLE log
         REFERENCES users (id) MATCH SIMPLE
         ON UPDATE NO ACTION ON DELETE NO ACTION
 );
+ALTER TABLE log OWNER TO kaffeefee;

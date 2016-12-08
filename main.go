@@ -346,7 +346,6 @@ func hasLocalImage(name string) (bool, string) {
 	path := fmt.Sprintf("%s/static/%s.png", wd, name)
 	fh, err := os.Open(path)
 	if err != nil {
-		fmt.Println(err)
 		return false, ""
 	}
 	fh.Close()
@@ -365,6 +364,7 @@ func hasGravatarImage(mail string) (bool, string) {
 
 	resp, err := http.Get(url)
 	if err != nil {
+		fmt.Println(err)
 		return false, ""
 	}
 	defer resp.Body.Close()
