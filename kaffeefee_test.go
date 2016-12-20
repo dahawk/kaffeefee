@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -159,10 +160,7 @@ func TestGetMonthlyCount(t *testing.T) {
 func TestRenderPage(t *testing.T) {
 	users := []user{user{UserID: 1, Name: "user 1", Today: 0}}
 
-	output, err := renderPage(true, users)
-	if err != nil {
-		t.Error(err)
-	}
+	output := renderPage(true, users)
 
 	u, ok := output["Users"]
 	if !ok {
@@ -198,5 +196,17 @@ func TestHasLocalImage(t *testing.T) {
 
 	if strings.HasPrefix(path, "Default.png") {
 		t.Error("encountered unexpected image path")
+	}
+}
+
+func TestCheckIsNaN(t *testing.T) {
+	val := checkNaN(math.NaN())
+	if val != 0.0 {
+		t.Errorf("expected 0.0 but got %f", val)
+	}
+
+	val = checkNaN(1.0)
+	if val != 1.0 {
+		t.Errorf("expected 1.0 but got %f", val)
 	}
 }

@@ -27,7 +27,8 @@
 			</div>
 		</nav>
 		<div class="container">
-			<h1>Day Distribution</h1>
+			<h1>Week Distribution</h1>
+			<h3>(over the last three months)</h3>
 			<div class="row" id="weeklychart" style="height: 300px;"></div>
     </div>
 		<script>

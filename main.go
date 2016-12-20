@@ -83,7 +83,7 @@ func main() {
 
 }
 
-func renderPage(store bool, users []user) (map[string]interface{}, error) {
+func renderPage(store bool, users []user) map[string]interface{} {
 	p := make(map[string]interface{}, 0)
 	var data []user
 	for _, v := range users {
@@ -93,105 +93,76 @@ func renderPage(store bool, users []user) (map[string]interface{}, error) {
 	if _, ok := p["Error"]; !ok {
 		p["Store"] = store
 	}
-	return p, nil
+	return p
 }
 
-//TODO break it up.
-//Return type map[string]map[string]float64 indicates something fishy
-func calculateAverages(users []user) map[string]map[string]float64 {
-	minTimestamp := getMinTimestamp()
-	ret := make(map[string]map[string]float64, 0)
+func calculateUserAverages(u user, minTimestamp int64) (dailyAvg, weeklyAvg, monthlyAvg float64) {
+	var (
+		//number of coffies
+		countDaily   int64
+		countWeekly  int64
+		countMonthly int64
+
+		//number of days/weeks/month considered
+		cntDays   int64
+		cntWeeks  int64
+		cntMonths int64
+	)
 
 	now := time.Now()
 	subDay := 60 * 60 * 24
 	subWeek := subDay * 7
 
-	countsDaily := make(map[string]int64, 0)
-	countsWeekly := make(map[string]int64, 0)
-	countsMonthly := make(map[string]int64, 0)
-	cntDaily := make(map[string]int64, 0)
-	cntWeekly := make(map[string]int64, 0)
-	cntMonthly := make(map[string]int64, 0)
-	for _, u := range users {
+	toDaily := now.Truncate(truncDay).Unix()
+	fromDaily := toDaily - int64(subDay)
 
-		countsDaily[u.Name] = 0
-		countsWeekly[u.Name] = 0
-		countsMonthly[u.Name] = 0
-
-		cntDaily[u.Name] = 0
-		cntWeekly[u.Name] = 0
-		cntMonthly[u.Name] = 0
+	l := getLogsForUser(u.UserID)
+	for fromDaily >= minTimestamp {
+		cntDays++
+		countDaily += l.calculateSumForUser(fromDaily, toDaily)
+		toDaily = fromDaily
+		fromDaily = fromDaily - int64(subDay)
 	}
-	for _, u := range users {
-		toDaily := now.Truncate(truncDay).Unix()
-		fromDaily := toDaily - int64(subDay)
 
-		l := getLogsForUser(u.UserID)
-		for fromDaily >= minTimestamp {
-			cntDaily[u.Name]++
-			countsDaily[u.Name] += l.calculateSumForUser(fromDaily, toDaily)
-			toDaily = fromDaily
-			fromDaily = fromDaily - int64(subDay)
-		}
+	toWeekly := now.Truncate(truncWeek).Unix()
+	fromWeekly := toWeekly - int64(subWeek)
 
-		toWeekly := now.Truncate(truncWeek).Unix()
-		fromWeekly := toWeekly - int64(subWeek)
+	for fromWeekly >= minTimestamp {
+		cntWeeks++
 
-		for fromWeekly >= minTimestamp {
-			cntWeekly[u.Name]++
+		countWeekly += l.calculateSumForUser(fromWeekly, toWeekly)
 
-			countsWeekly[u.Name] += l.calculateSumForUser(fromWeekly, toWeekly)
-
-			toWeekly = fromWeekly
-			fromWeekly = fromWeekly - int64(subWeek)
-		}
-
-		toTmp := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
-		toMonthly := toTmp.Add(-time.Second).Unix()
-		fromTmp := time.Date(toTmp.Year(), toTmp.Month()-1, 1, 0, 0, 0, 0, time.UTC)
-		fromMonthly := fromTmp.Unix()
-		for fromMonthly >= minTimestamp {
-			cntMonthly[u.Name]++
-
-			countsMonthly[u.Name] += l.calculateSumForUser(fromMonthly, toMonthly)
-
-			toTmp = fromTmp.Add(-time.Second)
-			fromTmp = time.Date(toTmp.Year(), toTmp.Month()-1, 1, 0, 0, 0, 0, time.UTC)
-			toMonthly = toTmp.Unix()
-			fromMonthly = fromTmp.Unix()
-		}
+		toWeekly = fromWeekly
+		fromWeekly = fromWeekly - int64(subWeek)
 	}
-	populate := populateUser()
-	avgsDay := populate.emptyMap()
-	for k, v := range countsDaily {
-		avgsDay[k] = (float64(v) / float64(cntDaily[k]))
-		if math.IsNaN(avgsDay[k]) {
-			avgsDay[k] = 0
-		}
+
+	toTmp := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	toMonthly := toTmp.Add(-time.Second).Unix()
+	fromTmp := time.Date(toTmp.Year(), toTmp.Month()-1, 1, 0, 0, 0, 0, time.UTC)
+	fromMonthly := fromTmp.Unix()
+	for fromMonthly >= minTimestamp {
+		cntMonths++
+
+		countMonthly += l.calculateSumForUser(fromMonthly, toMonthly)
+
+		toTmp = fromTmp.Add(-time.Second)
+		fromTmp = time.Date(toTmp.Year(), toTmp.Month()-1, 1, 0, 0, 0, 0, time.UTC)
+		toMonthly = toTmp.Unix()
+		fromMonthly = fromTmp.Unix()
 	}
-	ret["DailyAvgs"] = avgsDay
 
-	avgsWeek := populate.emptyMap()
-	for k, v := range countsWeekly {
+	dailyAvg = checkNaN(float64(countDaily) / float64(cntDays))
+	weeklyAvg = checkNaN(float64(countWeekly) / float64(cntWeeks))
+	monthlyAvg = checkNaN(float64(countMonthly) / float64(cntMonths))
 
-		avgsWeek[k] = (float64(v) / float64(cntWeekly[k]))
-		if math.IsNaN(avgsWeek[k]) {
-			avgsWeek[k] = 0
-		}
+	return dailyAvg, weeklyAvg, monthlyAvg
+}
+
+func checkNaN(in float64) float64 {
+	if math.IsNaN(in) {
+		return 0.0
 	}
-	ret["WeeklyAvgs"] = avgsWeek
-
-	avgsMonth := populate.emptyMap()
-	for k, v := range countsMonthly {
-
-		avgsMonth[k] = (float64(v) / float64(cntMonthly[k]))
-		if math.IsNaN(avgsMonth[k]) {
-			avgsMonth[k] = 0
-		}
-	}
-	ret["MonthlyAvgs"] = avgsMonth
-
-	return ret
+	return in
 }
 
 func (users userList) emptyMap() map[string]float64 {
@@ -257,7 +228,6 @@ func (logs userlogs) getMonthlyCount(now time.Time, minTimestamp int64) map[time
 	return ret
 }
 
-//TODO pull out populateUser
 func (users userList) getUserIDFromName(name string) int {
 	for _, v := range users {
 		if v.Name == name {
@@ -302,40 +272,6 @@ func getPeriod(now time.Time) (time.Time, time.Time) {
 	}
 
 	return from, to
-}
-
-func populateUser() userList {
-	u, err := getActiveUsers()
-	if err != nil {
-		fmt.Println(err)
-		return userList{}
-	}
-	from, _ := getPeriod(time.Now())
-
-	for i, user := range u {
-		var cnt []int
-		err = db.Select(&cnt, "select sum(cnt) from log where ts > $1 and userid = $2", from.Unix(), user.UserID)
-		if err == nil {
-			u[i].Today = cnt[0]
-		} else {
-			fmt.Println(err)
-		}
-
-		localImg, path := hasLocalImage(user.Name)
-		if localImg {
-			u[i].Image = path
-			continue
-		}
-
-		gravatarImg, url := hasGravatarImage(user.Mail)
-		if gravatarImg {
-			u[i].Image = url
-			continue
-		}
-		u[i].Image = "/static/Default.png"
-	}
-
-	return u
 }
 
 func hasLocalImage(name string) (bool, string) {

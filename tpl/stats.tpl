@@ -27,7 +27,7 @@
 			{{range $k, $v := .Total}}
 			<h3><a href="graph?user={{$k}}">{{$k}}</a></h3>
 			<div class="row">
-				<div class="col-xs-1"><img src="/static/{{$k}}.png"></div>
+				<div class="col-xs-1"><img src="{{ index $.Images $k}}"></div>
 				<div class="col-xs-11">
 					<table class="table table-condensed">
 						<thead>

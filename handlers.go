@@ -1,3 +1,5 @@
+//TODO check all error returns in handlers if an error message should be displayed
+
 package main
 
 import (
@@ -25,15 +27,11 @@ func logcoffee(w http.ResponseWriter, r *http.Request) {
 		occurred = storeLog(id[0])
 	}
 
-	p, err := renderPage(store, users)
+	p := renderPage(store, users)
 	p["From"] = from.Format("02.01.2006")
 	p["To"] = to.Format("02.01.2006")
 	if occurred != nil {
 		p["Error"] = occurred
-	}
-	if err != nil {
-		fmt.Println(err)
-		return
 	}
 	err = t.Execute(w, p)
 	if err != nil {
@@ -43,7 +41,6 @@ func logcoffee(w http.ResponseWriter, r *http.Request) {
 }
 
 func stats(w http.ResponseWriter, r *http.Request) {
-
 	t, err := template.ParseFiles("tpl/stats.tpl")
 
 	if err != nil {
@@ -60,11 +57,21 @@ func stats(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	month := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	users := populateUser()
+	minTimestamp, err := getMinTimestamp()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	dailyAvgs := make(map[string]float64, 0)
+	weeklyAvgs := make(map[string]float64, 0)
+	monthlyAvgs := make(map[string]float64, 0)
+	imageMap := make(map[string]string, 0)
 
 	for _, v := range users {
 		dayAggr[v.Name] = 0
 		weekAggr[v.Name] = 0
 		total[v.Name] = 0
+		imageMap[v.Name] = v.Image
 		var logs []log
 		er := db.Select(&logs, "select * from log where userid=$1", v.UserID)
 		if er != nil {
@@ -86,16 +93,26 @@ func stats(w http.ResponseWriter, r *http.Request) {
 				monthAggr[v.Name] += l.Number
 			}
 		}
+
+		daily, weekly, monthly := calculateUserAverages(v, minTimestamp)
+		dailyAvgs[v.Name] = daily
+		weeklyAvgs[v.Name] = weekly
+		monthlyAvgs[v.Name] = monthly
 	}
 	p := make(map[string]interface{}, 0)
-	avgs := calculateAverages(users)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	p["Weekly"] = weekAggr
 	p["Daily"] = dayAggr
 	p["Monthly"] = monthAggr
 	p["Total"] = total
-	p["DailyAvgs"] = avgs["DailyAvgs"]
-	p["WeeklyAvgs"] = avgs["WeeklyAvgs"]
-	p["MonthlyAvgs"] = avgs["MonthlyAvgs"]
+	p["DailyAvgs"] = dailyAvgs
+	p["WeeklyAvgs"] = weeklyAvgs
+	p["MonthlyAvgs"] = monthlyAvgs
+	p["Images"] = imageMap
 	errExec := t.Execute(w, p)
 	if errExec != nil {
 		fmt.Println(errExec)
@@ -117,7 +134,11 @@ func graph(w http.ResponseWriter, r *http.Request) {
 }
 
 func jsonAjax(w http.ResponseWriter, r *http.Request) {
-	minTimestamp := getMinTimestamp()
+	minTimestamp, err := getMinTimestamp()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	encoder := json.NewEncoder(w)
 
 	selector := r.URL.Query().Get("interval")
@@ -155,7 +176,7 @@ func dayGraph(w http.ResponseWriter, r *http.Request) {
 
 func jsonDaily(w http.ResponseWriter, r *http.Request) {
 	encoder := json.NewEncoder(w)
-	logs := getAllLogs()
+	logs := getGraphLogs()
 
 	data := make([]dayData, 24)
 	for i := 0; i < 24; i++ {
@@ -198,7 +219,7 @@ func weekGraph(w http.ResponseWriter, r *http.Request) {
 
 func jsonWeekly(w http.ResponseWriter, r *http.Request) {
 	encoder := json.NewEncoder(w)
-	logs := getAllLogs()
+	logs := getGraphLogs()
 
 	data := make([]weekData, 7)
 	weeks := 0

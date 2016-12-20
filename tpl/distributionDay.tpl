@@ -28,6 +28,8 @@
 		</nav>
 		<div class="container">
 			<h1>Day Distribution</h1>
+			<h3>(over the last three months)</h3>
+			<h6>(unfortunately not adjusted for daylight saving time)</h6>
 			<div class="row" id="dailychart" style="height: 300px;"></div>
     </div>
 		<script>

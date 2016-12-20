@@ -7,33 +7,15 @@ import (
 	"time"
 )
 
-func getUsersToday(id string) int {
-	now := time.Now()
-	from := now.Truncate(truncDay)
-
-	var cnt []int
-	err := db.Select(&cnt, "select sum(cnt) from log where ts > $1 and userid = $2", from.Unix(), id)
-	if err == nil {
-		return cnt[0]
-	}
-	panic(err)
-}
-
-//TODO kill the magic number
-func getMinTimestamp() int64 {
-	lowestMin := int64(1451602800)
-
+func getMinTimestamp() (int64, error) {
 	var ts int64
 
 	err := db.Get(&ts, "select min(ts) as mints from log")
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
 
-	if ts < lowestMin {
-		return lowestMin
-	}
-	return ts
+	return ts, nil
 }
 
 func getLogsForUser(id int) userlogs {
@@ -44,10 +26,11 @@ func getLogsForUser(id int) userlogs {
 	return ret
 }
 
-func getAllLogs() userlogs {
+func getGraphLogs() userlogs {
 	var ret userlogs
+	minTimestamp := time.Now().AddDate(0, -3, 0).Unix()
 
-	db.Select(&ret, "select * from log order by ts asc")
+	db.Select(&ret, "select * from log where ts >= $1 order by ts asc", minTimestamp)
 
 	return ret
 }
@@ -140,4 +123,38 @@ func getActiveUsers() (userList, error) {
 	}
 
 	return u, nil
+}
+
+func populateUser() userList {
+	u, err := getActiveUsers()
+	if err != nil {
+		fmt.Println(err)
+		return userList{}
+	}
+	from, _ := getPeriod(time.Now())
+
+	for i, user := range u {
+		var cnt []int
+		err = db.Select(&cnt, "select sum(cnt) from log where ts > $1 and userid = $2", from.Unix(), user.UserID)
+		if err == nil {
+			u[i].Today = cnt[0]
+		} else {
+			fmt.Println(err)
+		}
+
+		localImg, path := hasLocalImage(user.Name)
+		if localImg {
+			u[i].Image = path
+			continue
+		}
+
+		gravatarImg, url := hasGravatarImage(user.Mail)
+		if gravatarImg {
+			u[i].Image = url
+			continue
+		}
+		u[i].Image = "/static/Default.png"
+	}
+
+	return u
 }
