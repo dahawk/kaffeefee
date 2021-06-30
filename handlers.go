@@ -1,5 +1,3 @@
-//TODO check all error returns in handlers if an error message should be displayed
-
 package main
 
 import (

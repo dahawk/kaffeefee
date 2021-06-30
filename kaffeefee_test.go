@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+const (
+	user1="user 1"
+)
+
 func TestGetPeriod(t *testing.T) {
 	now := time.Now()
 
@@ -83,7 +87,7 @@ func TestCalculateSumForUser(t *testing.T) {
 
 func TestEmptyUser(t *testing.T) {
 	users := userList{
-		user{UserID: 1, Name: "user 1", Today: 10},
+		user{UserID: 1, Name: user1, Today: 10},
 		user{UserID: 2, Name: "user 2", Today: 10},
 		user{UserID: 3, Name: "user 3", Today: 10},
 	}
@@ -92,7 +96,7 @@ func TestEmptyUser(t *testing.T) {
 	if len(userMap) != 3 {
 		t.Error("expected 3 elements, got ", len(userMap))
 	}
-	if cnt, ok := userMap["user 1"]; !ok || cnt != 0.0 {
+	if cnt, ok := userMap[user1]; !ok || cnt != 0.0 {
 		t.Error("error accessing userMap")
 	}
 }
@@ -158,7 +162,7 @@ func TestGetMonthlyCount(t *testing.T) {
 }
 
 func TestRenderPage(t *testing.T) {
-	users := []user{user{UserID: 1, Name: "user 1", Today: 0}}
+	users := []user{user{UserID: 1, Name: user1, Today: 0}}
 
 	output := renderPage(true, users)
 
@@ -174,7 +178,7 @@ func TestRenderPage(t *testing.T) {
 }
 
 func TestGetUserIDFromName(t *testing.T) {
-	users := userList{user{UserID: 1, Name: "user 1", Today: 0}}
+	users := userList{user{UserID: 1, Name: user1, Today: 0}}
 
 	id := users.getUserIDFromName("user 1")
 	if id != 1 {
@@ -210,3 +214,4 @@ func TestCheckIsNaN(t *testing.T) {
 		t.Errorf("expected 1.0 but got %f", val)
 	}
 }
+

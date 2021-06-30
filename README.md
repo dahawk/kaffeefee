@@ -8,10 +8,12 @@ Kaffeefee (roughly translates to coffee fairy - german pun intended) is a nice l
 In order to run Kaffeefee you need:
 * Build the project
 * A Postgres database
-* The content of create.sql imported into the Postgres database
-* One of the following:
-    * In main.go substitute the string in line 52 with the correct postgres connection url
-    * Alternatively export an environment variable DB with the postgres connection url as value
+* The content of create.sql imported into the Postgres database    
+* Export an environment variable DB with the postgres connection url as value
+
+Alternatively you can use the docker-compose file. In this case a database and the required tables will be created.
+
+**PLEASE NOTE** For security reasons it is strongly recommended to genearate a secure password for the database and not to use the default credentials in the docker-compose.yml file.
 
 In order to display users correctly, you need a image or avatar for every user in png format. These images need to be placed in the static folder.
 The filename for each image needs to be <user name>.png (e.g. user name is christof -> filename is christof.png).

@@ -52,11 +52,11 @@ const (
 
 func main() {
 	var err error
-	defaultDB := "postgres://<user>:<pwd>@<host>/<db>?sslmode=disable"
 
 	dbString := os.Getenv("DB")
 	if dbString == "" {
-		dbString = defaultDB
+		fmt.Printf("DB is not set")
+		os.Exit(1)
 	}
 
 	db, err = sqlx.Open("postgres", dbString)
@@ -67,6 +67,7 @@ func main() {
 	fmt.Println("server started")
 	mux := http.NewServeMux()
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	mux.Handle("/fonts/", http.StripPrefix("/fonts/", http.FileServer(http.Dir("./static/fonts"))))
 	mux.HandleFunc("/", logcoffee)
 	mux.HandleFunc("/stats", stats)
 	mux.HandleFunc("/graph", graph)

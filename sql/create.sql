@@ -1,5 +1,3 @@
-CREATE ROLE kaffeefee WITH LOGIN;
-
 CREATE TABLE users
 (
     id bigserial NOT NULL,

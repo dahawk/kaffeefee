@@ -1,0 +1,6 @@
+sql/
+.gitignore
+.travix
+LICENSE
+README.md
+sonar-project.properties

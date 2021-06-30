@@ -1,2 +1,4 @@
-bin/
-Makefile
+static/coffeescripts
+static/fonts
+static/javascripts
+static/stylesheets

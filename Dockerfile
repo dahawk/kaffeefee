@@ -1,21 +1,24 @@
-FROM alpine:latest
+FROM golang:1.16-alpine3.12 AS build
 
-RUN apk --no-cache update && \
-  apk --no-cache upgrade && \
-  apk --no-cache add ca-certificates && \
+WORKDIR /go/src
+
+COPY . .
+
+RUN go build -o kaffeefee
+
+FROM alpine:3.12
+
+RUN apk add ca-certificates && \
   adduser -D kaffeefee
 
-COPY bin/kaffeefee /home/kaffeefee/
-COPY static/ /home/kaffeefee/static/
-COPY tpl/ /home/kaffeefee/tpl/
-
-RUN chown -R kaffeefee:kaffeefee /home/kaffeefee && chmod +x /home/kaffeefee/kaffeefee
-
-ENV DB="postgres://kaffeefee:kaffeefee@db/kaffeefee?sslmode=disable"
 EXPOSE 8080
 VOLUME /home/kaffeefee/static
 
 USER kaffeefee
 WORKDIR /home/kaffeefee
 
-CMD ./kaffeefee
+CMD ["/home/kaffeefee/kaffeefee"]
+
+COPY --from=build --chown=kaffeefee:kaffeefee /go/src/kaffeefee /home/kaffeefee/
+COPY static/ /home/kaffeefee/static/
+COPY tpl/ /home/kaffeefee/tpl/
