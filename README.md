@@ -4,11 +4,16 @@
 Kaffeefee (roughly translates to coffee fairy - german pun intended) is a nice little go project that offers a browser-based coffee tracker for companies, teams, or whoever wants to track coffee consumption.
 
 ## Install ##
+
+### docker run
+
 In order to run Kaffeefee you need:
 * Build the project
 * A Postgres database
 * The content of create.sql imported into the Postgres database    
 * Export an environment variable DB with the postgres connection url as value
+
+### docker-compose 
 
 Alternatively you can use the docker-compose file. In this case a database and the required tables will be created.
 
