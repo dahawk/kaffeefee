@@ -1,4 +1,3 @@
-[![Build Status](https://travis-ci.org/dahawk/kaffeefee.svg?branch=master)](https://travis-ci.org/dahawk/kaffeefee)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dahawk/kaffeefee)](https://goreportcard.com/report/github.com/dahawk/kaffeefee)
 
 # README #
